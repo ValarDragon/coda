@@ -48,7 +48,8 @@ struct
           in
           Coda_process.local_config ?proposal_interval ~peers ~discovery_port
             ~external_port ~snark_worker_config ~program_dir
-            ~should_propose:(should_propose i) ~work_selection () )
+            ~transition_interval ~should_propose:(should_propose i)
+            ~work_selection () )
     in
     configs
 
