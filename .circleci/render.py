@@ -9,7 +9,7 @@ test_names= [
   'coda-block-production-test',
   'coda-shared-prefix-test -who-proposes 0 -proposal-interval 6000',
   'coda-shared-prefix-test -who-proposes 1 -proposal-interval 6000',
-  'coda-shared-state-test',
+  'coda-shared-state-test -proposal-interval 6000',
   'coda-restart-node-test',
   'transaction-snark-profiler -check-only',
 ]
