@@ -52,6 +52,9 @@ module Make (Kernel : Kernel_intf) : Integration_test_intf.S = struct
   let command =
     let open Command.Let_syntax in
     Command.async ~summary:"Test that workers share states"
-      (let%map_open proposal_interval = flag "proposal-interval" ~doc:"MILLIS proposal interval in proof of sig" (optional int) in
-      main proposal_interval)
+      (let%map_open proposal_interval =
+         flag "proposal-interval"
+           ~doc:"MILLIS proposal interval in proof of sig" (optional int)
+       in
+       main proposal_interval)
 end
