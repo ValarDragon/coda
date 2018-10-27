@@ -195,11 +195,11 @@ jobs:
                 name: Running test - coda-block-production-test | proof_of_signature
                 command: source ~/.profile && cd src && CODA_CONSENSUS_METHOD=proof_of_signature ../scripts/test_integration_test.sh 'coda-block-production-test'
             - run:
-                name: Running test - coda-shared-prefix-test -who-proposes 0 -proposal-interval 4000 | proof_of_signature
-                command: source ~/.profile && cd src && CODA_CONSENSUS_METHOD=proof_of_signature ../scripts/test_integration_test.sh 'coda-shared-prefix-test -who-proposes 0 -proposal-interval 4000'
+                name: Running test - coda-shared-prefix-test -who-proposes 0 -proposal-interval 6000 | proof_of_signature
+                command: source ~/.profile && cd src && CODA_CONSENSUS_METHOD=proof_of_signature ../scripts/test_integration_test.sh 'coda-shared-prefix-test -who-proposes 0 -proposal-interval 6000'
             - run:
-                name: Running test - coda-shared-prefix-test -who-proposes 1 -proposal-interval 4000 | proof_of_signature
-                command: source ~/.profile && cd src && CODA_CONSENSUS_METHOD=proof_of_signature ../scripts/test_integration_test.sh 'coda-shared-prefix-test -who-proposes 1 -proposal-interval 4000'
+                name: Running test - coda-shared-prefix-test -who-proposes 1 -proposal-interval 6000 | proof_of_signature
+                command: source ~/.profile && cd src && CODA_CONSENSUS_METHOD=proof_of_signature ../scripts/test_integration_test.sh 'coda-shared-prefix-test -who-proposes 1 -proposal-interval 6000'
             - run:
                 name: Running test - coda-shared-state-test | proof_of_signature
                 command: source ~/.profile && cd src && CODA_CONSENSUS_METHOD=proof_of_signature ../scripts/test_integration_test.sh 'coda-shared-state-test'
