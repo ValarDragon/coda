@@ -60,7 +60,7 @@ let%test_module "test functor on in memory databases" =
 
       let dedup_accounts accounts =
         List.dedup_and_sort accounts ~compare:(fun account1 account2 ->
-            String.compare
+            Signature_lib.Public_key.Compressed.compare
               (Account.public_key account1)
               (Account.public_key account2) )
 

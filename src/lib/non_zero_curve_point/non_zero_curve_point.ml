@@ -12,6 +12,8 @@ end
 include Stable.V1
 include Comparable.Make_binable (Stable.V1)
 
+type uncompressed = t
+
 type var = Tick.Field.var * Tick.Field.var
 
 let var_of_t (x, y) =

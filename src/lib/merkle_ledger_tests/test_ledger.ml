@@ -8,6 +8,7 @@ let%test_module "test functor on in memory databases" =
     module Key = Test_stubs.Key
     module Hash = Test_stubs.Hash
     module Account = Test_stubs.Account
+    module Receipt = Test_stubs.Receipt                   
 
     module Make (Depth : Intf.Depth) = struct
       include Ledger.Make (Key) (Account) (Hash) (Depth)
@@ -20,11 +21,16 @@ let%test_module "test functor on in memory databases" =
 
       let load_ledger n b : t * key list =
         let ledger = create () in
-        let keys = List.init n ~f:(fun i -> Int.to_string i) in
-        List.iter keys ~f:(fun k ->
+        let keys = Quickcheck.random_value ~seed:(`Deterministic "load_ledger")
+                     (Quickcheck.Generator.list_with_length n Signature_lib.Public_key.Compressed.gen) in
+        List.iteri keys ~f:(fun i public_key ->
             let action, _ =
-              get_or_create_account_exn ledger k
-                {Account.balance= UInt64.of_int b; public_key= k}
+              get_or_create_account_exn ledger public_key
+                { balance= Currency.Balance.of_int b
+                ; public_key
+                ; nonce = Account.Nonce.of_int i
+                ; receipt_chain_hash=Receipt.Chain_hash.empty
+                }
             in
             assert (action = `Added) ) ;
         (ledger, keys)
@@ -56,7 +62,7 @@ let%test_module "test functor on in memory databases" =
       let%bind location = L.location_of_key ledger public_key in
       L.get ledger location
 
-    let gkey = Option.map ~f:(Fn.compose UInt64.to_int Account.balance)
+    let gkey = Option.map ~f:(Fn.compose Currency.Balance.to_int Account.balance)
 
     let%test "key_retrieval" =
       let b = 100 in
@@ -66,17 +72,19 @@ let%test_module "test functor on in memory databases" =
     let%test "idx_retrieval" =
       let b = 100 in
       let ledger, _keys = L16.load_ledger 10 b in
-      L16.get_at_index_exn ledger 0 |> Account.balance = UInt64.of_int 100
+      L16.get_at_index_exn ledger 0 |> Account.balance = Currency.Balance.of_int 100
 
     let%test "key_nonexist" =
       let b = 100 in
       let ledger, _ = L16.load_ledger 10 b in
-      None = L16.location_of_key ledger "aintioaerntnearst"
+      let key = Quickcheck.random_value ~seed:(`Deterministic "key_nonexist") Signature_lib.Public_key.Compressed.gen in
+      None = L16.location_of_key ledger key
 
     let%test "idx_nonexist" =
       let b = 100 in
       let ledger, _keys = L16.load_ledger 10 b in
-      None = get (module L16) ledger "1234567"
+      let key = Quickcheck.random_value ~seed:(`Deterministic "idx_nonexist") Signature_lib.Public_key.Compressed.gen in
+      None = get (module L16) ledger key
 
     let%test_unit "modify_account" =
       let initial_balance = 100 in
@@ -86,7 +94,9 @@ let%test_module "test functor on in memory databases" =
         L16.location_of_key ledger public_key |> Option.value_exn
       in
       assert (Some initial_balance = gkey @@ L16.get ledger location) ;
-      L16.set ledger location {balance= UInt64.of_int 50; public_key} ;
+      let account = {Account.balance= Currency.Balance.of_int 50; public_key; nonce=Account.Nonce.zero; receipt_chain_hash=Receipt.Chain_hash.empty}
+      in
+      L16.set ledger location account ;
       assert (Some 50 = gkey @@ L16.get ledger location)
 
     let%test_unit "modify_account_by_idx" =
@@ -94,11 +104,12 @@ let%test_module "test functor on in memory databases" =
       let ledger, _ = L16.load_ledger 10 b in
       let idx = 0 in
       assert (
-        L16.get_at_index_exn ledger idx |> Account.balance = UInt64.of_int 100
+        L16.get_at_index_exn ledger idx |> Account.balance = Currency.Balance.of_int 100
       ) ;
-      let new_b = UInt64.of_int 50 in
+      let new_b = Currency.Balance.of_int 50 in
+      let public_key = Quickcheck.random_value ~seed:(`Deterministic "modify_account_by_idx") Signature_lib.Public_key.Compressed.gen in
       L16.set_at_index_exn ledger idx
-        {balance= new_b; public_key= Int.to_string idx} ;
+        {balance= new_b; public_key; nonce=Account.Nonce.zero;receipt_chain_hash=Receipt.Chain_hash.empty} ;
       assert (L16.get_at_index_exn ledger idx |> Account.balance = new_b)
 
     let compose_hash n hash =
@@ -123,7 +134,7 @@ let%test_module "test functor on in memory databases" =
 
     let%test_unit "merkle_root_edit" =
       let b1 = 10 in
-      let b2 = UInt64.of_int 50 in
+      let b2 = Currency.Balance.of_int 50 in
       let n = 10 in
       let ledger, keys = L16.load_ledger n b1 in
       let public_key = List.nth_exn keys 0 in
@@ -132,13 +143,13 @@ let%test_module "test functor on in memory databases" =
         L16.location_of_key ledger public_key |> Option.value_exn
       in
       assert (Hash.empty_account <> root0) ;
-      L16.set ledger location {balance= b2; public_key} ;
+      L16.set ledger location {balance= b2; public_key; nonce=Account.Nonce.zero;receipt_chain_hash=Receipt.Chain_hash.empty} ;
       let root1 = L16.merkle_root ledger in
       assert (root1 <> root0) ;
-      L16.set ledger location {balance= UInt64.of_int b1; public_key} ;
+      L16.set ledger location {balance= Currency.Balance.of_int b1; public_key; nonce=Account.Nonce.zero;receipt_chain_hash=Receipt.Chain_hash.empty} ;
       let root2 = L16.merkle_root ledger in
       assert (root2 = root0) ;
-      L16.set ledger location {balance= b2; public_key} ;
+      L16.set ledger location {balance= b2; public_key; nonce=Account.Nonce.zero;receipt_chain_hash=Receipt.Chain_hash.empty} ;
       let root3 = L16.merkle_root ledger in
       assert (root3 = root1)
 
@@ -188,7 +199,7 @@ let%test_module "test functor on in memory databases" =
           let location =
             L16.location_of_key ledger public_key |> Option.value_exn
           in
-          L16.set ledger location {balance= UInt64.of_int b2; public_key} ;
+          L16.set ledger location {balance= Currency.Balance.of_int b2; public_key; nonce=Account.Nonce.zero;receipt_chain_hash=Receipt.Chain_hash.empty} ;
           let path = merkle_path (module L16) ledger public_key in
           let account = L16.get ledger location |> Option.value_exn in
           let root = L16.merkle_root ledger in
